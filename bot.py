@@ -18,34 +18,34 @@ class Bot:
 		self.client.hooks.append(lambda m: self.handle_removeattribute(m.content, str(m.channel)))
 		self.client.hooks.append(lambda m: self.handle_setcollection(m.content, str(m.channel)))
 
-	def send_alarm(self, nft: NFT, channel='bot', next_cheapest: NFT=None, trigger=None):
-		self.client.send_message(
-			'@everyone\n'+
-			f'https://solanart.io/search/?token={nft.token_add}\n'+
-			'```'
-			f'{nft.name}\n'+
-			f'price  : {nft.price} sol\n'+
-			f'{f"next: {next_cheapest.price}" if next_cheapest is not None else ""}\n'+
-			f'{f"trigger: {trigger}" if trigger is not None else ""}\n'+
-			f'attr : {[a for a in nft.attributes_list]}\n'+
-			f'count: {len(nft.attributes_list) - 5}\n'+
-			f'\n'+
-			'```'
-		, log=True, channel_name=channel)
-	# def send_alarm(self, nft:NFT, match:Filter.Match, channel:str = 'bot'):
+	# def send_alarm(self, nft: NFT, channel='bot', next_cheapest: NFT=None, trigger=None):
 	# 	self.client.send_message(
-	# 		'@testing\n'+
+	# 		'@everyone\n'+
 	# 		f'https://solanart.io/search/?token={nft.token_add}\n'+
 	# 		'```'
 	# 		f'{nft.name}\n'+
 	# 		f'price  : {nft.price} sol\n'+
-	# 		f'{f"next: {nft.price/match.price_threshold[1]}" if match.price_threshold is not None else ""}\n'+
-	# 		f'trigger: {match.as_dict()}\n'+
+	# 		f'{f"next: {next_cheapest.price}" if next_cheapest is not None else ""}\n'+
+	# 		f'{f"trigger: {trigger}" if trigger is not None else ""}\n'+
 	# 		f'attr : {[a for a in nft.attributes_list]}\n'+
 	# 		f'count: {len(nft.attributes_list) - 5}\n'+
 	# 		f'\n'+
 	# 		'```'
 	# 	, log=True, channel_name=channel)
+	def send_alarm(self, nft:NFT, match:Filter.Match, channel:str = 'bot'):
+		self.client.send_message(
+			'@testing\n'+
+			f'https://solanart.io/search/?token={nft.token_add}\n'+
+			'```'
+			f'{nft.name}\n'+
+			f'price  : {nft.price} sol\n'+
+			f'next   : {nft.price/match.price_threshold[1] if match.price_threshold is not None else "none"}\n'+
+			f'trigger: {[t for t in match.as_dict()]}\n'+
+			f'attr : {[a for a in nft.attributes_list]}\n'+
+			f'count: {len(nft.attributes_list) - 5}\n'+
+			f'\n'+
+			'```'
+		, log=True, channel_name=channel)
 
 	def handle_addattribute(self, message: str, channel: str):
 		message = message.split('|')
@@ -55,7 +55,7 @@ class Bot:
 			self.client.send_message('invalid command syntax', channel_name=channel)
 			return
 		for m in message[1:]:
-			self.repo.target_attributes.add(m)
+			self.repo.filters.append(Filter('aurory-3', attributes=[m], price_threshold=0.7))
 		self.client.send_message(f'successfully added `{message[1:]}`', channel_name=channel)
 
 	def handle_addattributecount(self, message: str, channel: str):
@@ -65,27 +65,38 @@ class Bot:
 		if len(message) != 2:
 			self.client.send_message('invalid command syntax', channel_name=channel)
 			return
-		try:
-			message[1] = int(message[1])
-		except:
-			self.client.send_message('invalid command syntax', channel_name=channel)
-			return
-		self.repo.target_attributecount.add(message[1])
-		self.client.send_message(f'successfully added `{message[1]}`', channel_name=channel)
+		for m in message[1:]:
+			try:
+				m = int(m)
+			except:
+				self.client.send_message('invalid command syntax', channel_name=channel)
+				return
+			try:
+				self.repo.filters.append(Filter('aurory-3', attribute_count=m))
+			except:
+				self.client.send_message('failed to add', m)
+			self.client.send_message(f'successfully added `{m}`', channel_name=channel)
 
 	def handle_removeattribute(self, message: str, channel: str):
 		message = message.split('|')
 		if message[0] != self.prefix+'removeattribute':
 			return
-		if len(message) != 2:
+		if len(message) < 2:
 			self.client.send_message('invalid command syntax', channel_name=channel)
 			return
-		try:
-			self.repo.target_attributes.remove(message[1])
-		except KeyError:
-			self.client.send_message('attribute not found')
-			return
-		self.client.send_message(f'successfully removed `{message[1]}`', channel_name=channel)
+		for m in message[1:]:
+			try:
+				m = int(m)
+			except:
+				self.client.send_message('invalid command syntax', channel_name=channel)
+				return
+			f:Filter = None
+			try:
+				f = self.repo.filters.pop(m)
+			except KeyError:
+				self.client.send_message('failed to remove attribute')
+				return
+			self.client.send_message(f'successfully removed `{m}`', channel_name=channel)
 		
 	def handle_list(self, message: str, channel: str):
 		message = message.split('|')
@@ -95,26 +106,24 @@ class Bot:
 			self.client.send_message('invalid command syntax', channel_name=channel)
 			return
 		
-		attributes = sorted(list(self.repo.target_attributes.copy()))
+		filters = self.repo.filters
 		header = \
 			f'instance-{os.getenv("ID")}\n'+\
 			f'collection: {self.repo.get_collection()}\n'+\
 			f'\n'+\
-			f'attr count alarm: {sorted(list(self.repo.target_attributecount.copy()))}\n'+\
-			f'\n'+\
-			f'total attributes: {len(attributes)}\n'+\
+			f'total attributes: {len(filters)}\n'+\
 			''
 		
-		if len(attributes) == 0:
+		if len(filters) == 0:
 			self.client.send_message(f'```\n{header}```', channel_name=channel)
 			return
 
-		for i in range(0, len(attributes), 20):
+		for i in range(0, len(filters), 20):
 			message = '```\n'
 			if i == 0:
 				message += f'{header}'
-			for j, a in enumerate(attributes[i:i+20]):
-				message += f'{i+j+1:2}. {a}\n'
+			for j, f in enumerate(filters[i:i+20]):
+				message += f'{i+j+1:2}. {f.as_dict()}\n'
 			message += '```'
 			self.client.send_message(message, channel_name=channel)
 		
@@ -127,7 +136,7 @@ class Bot:
 			return
 		old_coll = self.repo.get_collection()
 		self.repo.set_collection(message[1])
-		for i in range(3):
+		for _ in range(3):
 			_, err = Scraper.get_nfts()
 			if err is None:
 				break

@@ -1,7 +1,8 @@
 from util import stack_trace
+from filter import Filter
 
 import pickle
-from typing import Optional, Iterable, Any, Set
+from typing import Optional, Iterable, Any, Set, List
 from threading import RLock
 
 class SyncSet:
@@ -33,14 +34,11 @@ class SyncSet:
 class Repository:
 	def __init__(self):
 		self.sent = SyncSet('sent')
-		self.target_attributes = SyncSet('targets')
-		self.target_attributecount = SyncSet('targetcount')
 		self.collection = 'degenape'
 		self.collection_lock = RLock()
 
 		self.__load_sent()
-		self.__load_target_attributes()
-		self.__load_target_attributecount()
+		self.__load_filters()
 		self.__load_collection()
 	
 	def __load_sent(self) -> Optional[str]:
@@ -51,18 +49,10 @@ class Repository:
 			return stack_trace(e)
 		return None
 	
-	def __load_target_attributes(self) -> Optional[str]:
+	def __load_filters(self) -> Optional[str]:
 		try:
-			with open('targets.pkl', 'rb') as f:
-				self.target_attributes = SyncSet('targets', pickle.load(f))
-		except Exception as e:
-			return stack_trace(e)
-		return None
-
-	def __load_target_attributecount(self) -> Optional[str]:
-		try:
-			with open('targetcount.pkl', 'rb') as f:
-				self.target_attributecount = SyncSet('targetcount', pickle.load(f))
+			with open('filters.pkl', 'rb') as f:
+				self.filters = pickle.load(f)
 		except Exception as e:
 			return stack_trace(e)
 		return None
