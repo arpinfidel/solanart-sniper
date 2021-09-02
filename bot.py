@@ -56,6 +56,7 @@ class Bot:
 			return
 		for m in message[1:]:
 			self.repo.filters.append(Filter('aurory-1', attributes=[m], price_threshold=0.7))
+			self.repo.save_filters()
 		self.client.send_message(f'successfully added `{message[1:]}`', channel_name=channel)
 
 	def handle_addattributecount(self, message: str, channel: str):
@@ -73,6 +74,7 @@ class Bot:
 				return
 			try:
 				self.repo.filters.append(Filter('aurory-2', attribute_count=m))
+				self.repo.save_filters()
 			except:
 				self.client.send_message('failed to add', m)
 			self.client.send_message(f'successfully added `{m}`', channel_name=channel)
@@ -93,6 +95,7 @@ class Bot:
 			f:Filter = None
 			try:
 				f = self.repo.filters.pop(m)
+				self.repo.save_filters()
 			except KeyError:
 				self.client.send_message('failed to remove attribute')
 				return
