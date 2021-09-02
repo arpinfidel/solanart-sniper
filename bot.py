@@ -34,13 +34,13 @@ class Bot:
 	# 	, log=True, channel_name=channel)
 	def send_alarm(self, nft:NFT, match:Filter.Match, channel:str = 'bot'):
 		self.client.send_message(
-			'@testing\n'+
+			'@everyone\n'+
 			f'https://solanart.io/search/?token={nft.token_add}\n'+
 			'```'
 			f'{nft.name}\n'+
 			f'price  : {nft.price} sol\n'+
 			f'next   : {nft.price/match.price_threshold[1] if match.price_threshold is not None else "none"}\n'+
-			f'trigger: {[t for t in match.as_dict()]}\n'+
+			f'trigger: {match.as_dict()}\n'+
 			f'attr : {[a for a in nft.attributes_list]}\n'+
 			f'count: {len(nft.attributes_list) - 5}\n'+
 			f'\n'+
@@ -55,14 +55,14 @@ class Bot:
 			self.client.send_message('invalid command syntax', channel_name=channel)
 			return
 		for m in message[1:]:
-			self.repo.filters.append(Filter('aurory-3', attributes=[m], price_threshold=0.7))
+			self.repo.filters.append(Filter('aurory-1', attributes=[m], price_threshold=0.7))
 		self.client.send_message(f'successfully added `{message[1:]}`', channel_name=channel)
 
 	def handle_addattributecount(self, message: str, channel: str):
 		message = message.split('|')
 		if message[0] != self.prefix+'addattributecount':
 			return
-		if len(message) != 2:
+		if len(message) < 2:
 			self.client.send_message('invalid command syntax', channel_name=channel)
 			return
 		for m in message[1:]:
@@ -72,7 +72,7 @@ class Bot:
 				self.client.send_message('invalid command syntax', channel_name=channel)
 				return
 			try:
-				self.repo.filters.append(Filter('aurory-3', attribute_count=m))
+				self.repo.filters.append(Filter('aurory-2', attribute_count=m))
 			except:
 				self.client.send_message('failed to add', m)
 			self.client.send_message(f'successfully added `{m}`', channel_name=channel)

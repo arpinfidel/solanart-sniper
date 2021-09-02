@@ -36,6 +36,7 @@ class Repository:
 		self.sent = SyncSet('sent')
 		self.collection = 'degenape'
 		self.collection_lock = RLock()
+		self.filters:List[Filter] = []
 
 		self.__load_sent()
 		self.__load_filters()
@@ -75,4 +76,7 @@ class Repository:
 			self.collection = coll
 		with open('collection.pkl', 'wb') as f:
 			pickle.dump(coll, f)
-		
+	
+	def save_filters(self) -> None:
+		with open('filters.pkl', 'wb') as f:
+			pickle.dump(self.filters, f)
