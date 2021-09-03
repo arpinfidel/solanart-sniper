@@ -6,6 +6,8 @@ from nft import NFT
 from filter import Filter
 
 from typing import List
+import threading
+import time
 
 class Engine:
 	def __init__(self, bot: Bot, repo: Repository) -> None:
@@ -19,11 +21,24 @@ class Engine:
 		self.repo.sent.add((nft.id, nft.seller_address))
 
 	def start(self) -> None:
+		lock = threading.RLock()
+		buffer:List[NFT] = []
+		def scrape():
+			while True:
+				nfts, err = Scraper.get_nfts()
+				if err != None:
+					print(err)
+					continue
+				with lock:
+					buffer.extend(nfts)
+		t = threading.Thread(name='scraper', target=scrape)
+		t.setDaemon(True)
+		t.start()
 		while True:
-			nfts, err = Scraper.get_nfts()
-			if err != None:
-				print(err)
-				continue
+			nfts = []
+			with lock:
+				nfts = buffer
+				buffer = []
 			for f in self.repo.filters:
 				matches = f.match(nfts)
 				for n, m in matches:

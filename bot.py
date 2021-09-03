@@ -99,7 +99,7 @@ class Bot:
 			except KeyError:
 				self.client.send_message('failed to remove attribute')
 				return
-			self.client.send_message(f'successfully removed `{m}`', channel_name=channel)
+			self.client.send_message(f'successfully removed `{f.as_dict()}`', channel_name=channel)
 		
 	def handle_list(self, message: str, channel: str):
 		message = message.split('|')

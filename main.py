@@ -6,9 +6,13 @@ from bot import Bot
 
 import threading
 import time
+import os
+
+from dotenv import load_dotenv
+load_dotenv()
 
 client = Client('starting...', channel_name='aurory-1')
-t = threading.Thread(name='', target=lambda: client.run('ODcyMzkzNzE0NzY3NjM4NTQ4.YQpN9Q.udlF_beZtMsxBQTrWMFotGUxEz0'))
+t = threading.Thread(name='', target=lambda: client.run(os.getenv('DISCORD_TOKEN')))
 t.setDaemon(True)
 t.start()
 while not client.started:
