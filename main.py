@@ -11,6 +11,8 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
+delay = float(os.getenv('DELAY'))
+
 client = Client('starting...', channel_name='aurory-1')
 
 repo = Repository()
@@ -18,7 +20,7 @@ Scraper.set_repo(repo)
 bot = Bot('-', client, repo)
 engine = Engine(bot, repo)
 
-t = threading.Thread(name='', target=lambda: engine.start())
+t = threading.Thread(name='', target=lambda: engine.start(delay))
 t.setDaemon(True)
 t.start()
 

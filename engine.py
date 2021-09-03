@@ -20,7 +20,7 @@ class Engine:
 	def set_sent(self, nft: NFT):
 		self.repo.sent.add((nft.id, nft.seller_address))
 
-	def start(self) -> None:
+	def start(self, delay:float = 0) -> None:
 		lock = threading.RLock()
 		buffer:List[NFT] = []
 		def scrape():
@@ -31,6 +31,7 @@ class Engine:
 					continue
 				with lock:
 					buffer.extend(nfts)
+				time.sleep(delay)
 		t = threading.Thread(name='scraper', target=scrape)
 		t.setDaemon(True)
 		t.start()
